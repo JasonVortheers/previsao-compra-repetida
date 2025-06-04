@@ -1,0 +1,67 @@
+!pip install pandas matplotlib seaborn
+# Se quiser usar PySpark:
+# !pip install pyspark
+
+import pandas as pd
+import numpy as np
+from random import randint, choice
+from datetime import datetime, timedelta
+
+# Simulando 200 clientes
+np.random.seed(42)
+clientes = []
+for i in range(200):
+    freq = randint(1, 15)
+    total_gasto = round(np.random.uniform(50, 5000), 2)
+    categoria = choice(['Eletrônicos', 'Moda', 'Casa', 'Beleza', 'Livros'])
+    dias_ultima = randint(0, 60)
+    compra_repetida = 'Sim' if dias_ultima <= 30 else 'Não'
+    
+    clientes.append([freq, total_gasto, categoria, dias_ultima, compra_repetida])
+
+df = pd.DataFrame(clientes, columns=[
+    'Frequencia_Compras',
+    'Valor_Total_Gasto',
+    'Categoria_Mais_Comprada',
+    'Dias_Desde_Ultima_Compra',
+    'Compra_Repetida_30_dias'
+])
+
+# Salvar CSV
+df.to_csv('clientes_compras.csv', index=False)
+df.head()
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Carregar
+df = pd.read_csv('clientes_compras.csv')
+
+# Estatísticas iniciais
+print(df.describe())
+print(df['Compra_Repetida_30_dias'].value_counts())
+
+# Gráfico 1: Histograma de frequência de compras
+plt.figure(figsize=(10,5))
+sns.histplot(data=df, x='Frequencia_Compras', hue='Compra_Repetida_30_dias', kde=True)
+plt.title('Distribuição da Frequência de Compras')
+plt.show()
+
+# Gráfico 2: Valor total gasto por classe de resposta
+plt.figure(figsize=(10,5))
+sns.boxplot(data=df, x='Compra_Repetida_30_dias', y='Valor_Total_Gasto')
+plt.title('Valor Gasto vs Compra Repetida')
+plt.show()
+
+# Gráfico 3: Dias desde última compra
+plt.figure(figsize=(10,5))
+sns.histplot(data=df, x='Dias_Desde_Ultima_Compra', hue='Compra_Repetida_30_dias', kde=True)
+plt.title('Dias desde última compra')
+plt.show()
+
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("Compras").getOrCreate()
+df_spark = spark.read.csv("clientes_compras.csv", header=True, inferSchema=True)
+df_spark.show(5)
+df_spark.printSchema()
